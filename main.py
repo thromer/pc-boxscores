@@ -12,7 +12,7 @@ from lib import analyze
 from lib import pcweb
 from google.cloud import exceptions, storage
 
-# gcloud functions deploy process_box_score --runtime python37 --trigger-resource pc256-box-scores  --trigger-event google.storage.object.finalize
+# gcloud --project pennantchase-256 functions deploy --docker-registry=container_registry process_box_score --runtime python312 --trigger-resource pc256-box-scores  --trigger-event google.storage.object.finalize
 
 
 def process_box_score(event, context):

@@ -2,6 +2,8 @@
 
 # TODO (for current season): Don't update if nothing changed.
 
+# gcloud --project pennantchase-256 functions deploy --docker-registry=container_registry new_games_to_db --runtime python312 --trigger-http
+
 import argparse
 import bs4
 import firebase_admin
