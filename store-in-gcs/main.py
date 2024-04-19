@@ -4,7 +4,7 @@
 # TODO verify that the info in the box score matches (teams, runs)
 # TODO combine with analyze (saves gcs download cost)
 
-# gcloud --project pennantchase-256 functions deploy --docker-registry=container_registry  pubsub_to_gcs --runtime python312 --trigger-resource "projects/pennantchase-256/databases/(default)/documents/mydb/{mykey}" --trigger-event providers/cloud.firestore/eventTypes/document.create
+# gcloud --project pennantchase-256 functions deploy pubsub_to_gcs --gen2 --region us-central1 --runtime python312 --trigger-location nam5 --trigger-event-filters=database='(default)' --trigger-event-filters document='mydb/{username}'  --trigger-event-filters type=google.cloud.firestore.document.v1.written
 
 # listen for writes to mydb indicating that a new box score is available,
 # and dump the raw box score into cloud storage
