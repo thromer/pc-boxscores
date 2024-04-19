@@ -150,6 +150,8 @@ def new_games_to_db(request):
         break
     
     day -= 1
+  return ''
+
 
 if __name__ == '__main__':
     new_games_to_db(None)
