@@ -76,8 +76,9 @@ def analyze(data):
             batter['Team'], batter['Name'], batter['HR'], batter['Opponent']))
   for pitcher in pitchers:
     raw_ip = pitcher['IP']
-    innings, thirds = re.match('^(\d*)\.([0-9])(?:\.|$)', raw_ip).groups()
+    innings, thirds = re.match(r'^(\d*)\.([0-9])(?:\.|$)', raw_ip).groups()
     pitcher['OUT'] = int(innings) * 3 + int(thirds)
+    # print(f"{innings=} {thirds=} {pitcher['OUT']=}")
     pitcher['Opponent'] = opponents[pitcher['Team']]
     for key in PITCHER_KEYS:
       pitcher[key] = int(pitcher[key])
