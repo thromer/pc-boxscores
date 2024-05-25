@@ -4,6 +4,7 @@
 #  don't send if the message is already in the chatbox
 #  don't send if the game was more than a couple days ago
 # TODO also report the day
+# TODO would be nice to move to a subdirectory
 
 import re
 import sys
@@ -11,9 +12,6 @@ import sys
 from lib import analyze
 from lib import pcweb
 from google.cloud import exceptions, storage
-
-# gcloud --project pennantchase-256 functions deploy process_box_score --gen2 --region us-central1 --runtime python312 --trigger-location=us-west1 --trigger-resource pc256-box-scores  --trigger-event google.storage.object.finalize
-
 
 def process_box_score(event, context):
     """Background Cloud Function to be triggered by Cloud Storage.
