@@ -60,18 +60,22 @@ def new_games_to_db(request):
     r = requests.get('https://www.pennantchase.com/lgScoreboard.aspx?lgid=%s' % LEAGUE_ID)
     soup = bs4.BeautifulSoup(r.content, 'html.parser')
     select = soup.find_all(lambda tag: tag.has_attr('id') and tag['id'] == 'ContentPlaceHolder1_ddDays')[0]
-    day = int(select.find_all(lambda tag: tag.has_attr('selected') and tag['selected'] == 'selected')[0].getText())
+    day_elts = select.find_all(lambda tag: tag.has_attr('selected') and tag['selected'] == 'selected')  # explodes here
+    if day_elts:
+      day = int(day_elts[0].getText())
+    else:
+      day = 0
     print('Starting from day %d' % day, file=sys.stdout)
 
   if not year:
-    # hope that if we're in playoffs we get the year right!
+    # TODO hope that if we're in playoffs we get the year right!
     r = requests.get('https://www.pennantchase.com/lgSchedule.aspx?lgid=%s' % LEAGUE_ID)
     playoffs = r.content.decode().find('Playoff') >= 0
       
     r = requests.get(PAST_STANDINGS_URL)
     r.raise_for_status()
     last_year_str = re.sub(r"^.*Last Year's Standings: ([0-9]+)[^0-9].*$", r'\1', r.content.decode(), flags=re.DOTALL)
-    if not re.match('^[0-9]+$', last_year_str):
+    if not re.match(r'^[0-9]+$', last_year_str):
       raise Exception("Couldn't determine year")
     last_year = int(last_year_str)
     year = last_year + (0 if playoffs else 1)
