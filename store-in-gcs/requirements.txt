@@ -1,2 +1,4 @@
 bs4
+functions-framework
 google-cloud-storage
+google-events

@@ -18,8 +18,10 @@
 # Someday make up a db (or nosql) schema and populate a cloud sql (?) instance and share it
 
 import argparse
+import base64
 import bs4
 import csv
+import functions_framework
 import json
 import os
 import pprint
@@ -28,6 +30,7 @@ import requests
 import sys
 import time
 
+from google.events.cloud import firestore
 from google.cloud import exceptions, storage
 
 if ('GOOGLE_APPLICATION_CREDENTIALS' not in os.environ and
@@ -39,30 +42,26 @@ if ('GOOGLE_APPLICATION_CREDENTIALS' not in os.environ and
 BUCKET = 'pc256-box-scores'
 CONTENT_TYPE = 'text/html; charset=utf-8'
 
-def pubsub_to_gcs(data, context):
+@functions_framework.cloud_event
+def pubsub_to_gcs(event):
   """ Triggered by a change to a Firestore document.
-  Args:
-      data (dict): The event payload.
-      context (google.cloud.functions.Context): Metadata for the event.
   """
-  trigger_resource = context.resource
-  print('Function triggered by change to: %s' % trigger_resource)
-  # print(('data',data))
-  # print(('context',context))
+  # https://cloud.google.com/functions/docs/calling/cloud-firestore#example_1_hello_function
+  firestore_payload = firestore.DocumentEventData()
+  firestore_payload._pb.ParseFromString(event.data)
+  print(f"Function triggered by change to: {event['document']}")
 
-  # print('\nOld value:')
-  # print(json.dumps(data["oldValue"]))
-  
-  # print('\nNew value:')
-  print('data["value"]', data["value"])
-
+  # firestore_payload.value is a Document I guess https://cloud.google.com/python/docs/reference/firestore/1.4.0/document
+  # type is here: https://github.com/googleapis/google-cloudevents-python/blob/main/src/google/events/cloud/firestore_v1/types/data.py#L58
+  v = firestore_payload.value
   # {"createTime": "2021-01-27T05:17:54.788479Z", "fields": {"away": {"stringValue": "50ebd2f2-ba59-4378-ac40-66e11a258087"}, "away_r": {"stringValue": "6"}, "day": {"integerValue": "65"}, "home": {"stringValue": "9de82fcb-d4c8-4ff7-a4a4-36bc69394bc0"}, "home_r": {"stringValue": "7"}, "year": {"integerValue": "2039"}}, "name": "projects/pennantchase-256/databases/(default)/documents/mydb/000-delete-this-too-ghCRslHH9Mio2Rc2sM000", "updateTime": "2021-01-27T05:17:54.788479Z"}
+
   data_map = {}
   for k in ('away_r','home_r','day','year'):
-    data_map[k] = int(data['value']['fields'][k]['integerValue'])
+    data_map[k] = int(v.fields[k].integer_value)
   for k in ('away', 'home'):
-    data_map[k] = data['value']['fields'][k]['stringValue']
-  game_id = re.match(r'.*/documents/mydb/(.*)', data['value']['name'])[1]
+    data_map[k] = v.fields[k].string_value
+  game_id = re.match(r'.*/(.*)', event['document'])[1]
   print('data_map',data_map)
   print('game_id',game_id)
 
@@ -109,5 +108,3 @@ def pubsub_to_gcs(data, context):
     print('uploaded %s' % replay_blob_name, file=sys.stdout)
   else:
     print('already uploaded %s' % replay_blob_name, file=sys.stdout)
-  
-
