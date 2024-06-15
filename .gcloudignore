@@ -15,3 +15,14 @@
 
 node_modules
 venv
+
+__pycache__
+*~
+*.md
+
+analyze-stdin.py
+deploy.sh
+
+new-games-to-db
+store-in-gcs
+old

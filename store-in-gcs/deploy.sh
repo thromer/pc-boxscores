@@ -1,7 +1,8 @@
 #!/bin/bash 
 cd $(realpath "$(dirname "${BASH_SOURCE[0]}")") &&
-    gcloud --project pennantchase-256 functions deploy pubsub_to_gcs \
-	   --gen2 --region=us-central1 --runtime=python312 \
+    gcloud --project pennantchase-256 \
+	   functions deploy --gen2 --region=us-central1 --runtime=python312 \
+	   pubsub_to_gcs \
 	   --trigger-location=nam5 \
 	   --trigger-event-filters=database='(default)' \
 	   --trigger-event-filters-path-pattern=document='mydb/{username}' \
