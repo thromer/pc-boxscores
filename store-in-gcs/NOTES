@@ -18,7 +18,7 @@ roles/run.invoker
 
 Though the docs say this has the desired effect. Not sure if it was needed.
 
-gcloud --project=pennantchase-256 functions add-invoker-policy-binding new_games_to_db       --region="us-central1"       --member="serviceAccount:267654136269-compute@developer.gserviceaccount.com"
+gcloud --project=pennantchase-256 functions add-invoker-policy-binding new_games_to_db       --region="us-west1"       --member="serviceAccount:267654136269-compute@developer.gserviceaccount.com"
 
 
 Answer from SO:
