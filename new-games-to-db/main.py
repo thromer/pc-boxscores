@@ -15,12 +15,6 @@ from firebase_admin import credentials, firestore
 from google.api_core import exceptions
 from pprint import pprint
 
-if ('GOOGLE_APPLICATION_CREDENTIALS' not in os.environ and
-    'FUNCTION_TARGET' not in os.environ and
-    'FUNCTION_TRIGGER_TYPE' not in os.environ and
-    ('CLOUD_SHELL' not in os.environ or not os.environ['CLOUD_SHELL'])):
-  os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = '../service-account-key.json'
-
 
 LEAGUE_ID = '256'  # The Show
 BUCKET = 'pc256-box-scores'
@@ -57,10 +51,10 @@ def new_games_to_db(request):
   if not day:
     r = requests.get('https://www.pennantchase.com/lgScoreboard.aspx?lgid=%s' % LEAGUE_ID)
     soup = bs4.BeautifulSoup(r.content, 'html.parser')
-    select = soup.find_all(lambda tag: tag.has_attr('id') and tag['id'] == 'ContentPlaceHolder1_ddDays')[0]
-    day_elts = select.find_all(lambda tag: tag.has_attr('selected') and tag['selected'] == 'selected')  # explodes here
+    select = soup.find_all(lambda tag: tag.has_attr('id') and tag['id'] == 'wday')[0]
+    day_elts = select.find_all(lambda tag: tag.has_attr('value'))
     if day_elts:
-      day = int(day_elts[0].getText())
+      day = max([int(e['value']) for e in day_elts])
     else:
       day = 0
     print('Starting from day %d' % day, file=sys.stdout)
