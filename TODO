@@ -1,0 +1,2 @@
+Save space in new-games-to-db by migrating away from firebase_admin.
+Cut space in ~half by migrating to cloud run + docker + flask
