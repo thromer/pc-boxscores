@@ -11,6 +11,8 @@ import requests
 import sys
 import time
 
+from datetime import datetime, timedelta, timezone
+
 from firebase_admin import credentials, firestore
 from google.api_core import exceptions
 from pprint import pprint
@@ -35,6 +37,48 @@ def equal_except_year(a, b):
     del b2['year']
   return a2 == b2
 
+
+def get_pc_year():
+  r = requests.get(f'https://www.pennantchase.com/lgHistory.aspx?lgid={LEAGUE_ID}')
+  r.raise_for_status()
+  soup = bs4.BeautifulSoup(r.content, 'html.parser')
+  last_wsc = soup.find('p')
+  last_year_str, rest = last_wsc.text.split(' ', 1)
+  if not rest.startswith('World Series Champion'):
+    raise Exception(f"Couldn't determine year from {last_wsc.text}")
+  pc_year = int(last_year_str) + 1
+  print(f'{pc_year=}')
+  return pc_year
+  
+
+def get_year_from_db_maybe_update(db: firestore.Client, day: int, dry_run: bool) -> int:
+  metadata = db.collection(u'metadata')
+  ref = metadata.document('current_year')
+  current = ref.get().to_dict()
+
+  # Trust DB if day is late enough. Kind of high risk but whatever.
+  if day >= 8:
+    if not current:
+      raise Exception(f'{day=}: metadata.current_year not found in firestore')
+    return current['year']
+
+  # Trust DB if day is early and timestamp in DB is recent.
+  now = datetime.now(tz=timezone.utc)
+  if current and now - current['timestamp'] <= timedelta(days=7):
+    return current['year']
+
+  # At this point it is an early day and timestamp is old. So it should be the case that
+  # the season has rolled over at the DB is behind PC.
+  pc_year = get_pc_year()
+  if current and pc_year != current['year'] + 1:
+    raise Exception(f"{day=}, metadata.current_year={current}: expected pc_year == db_year + 1 but {pc_year=} db_year={current['year']}")
+  new_current = {'year': pc_year, 'timestamp': now}
+  if not dry_run:
+    ref.set(new_current)
+  else:
+    print(f'Dry run, would have set metadata.current_year={new_current}')
+  return pc_year
+  
 
 def new_games_to_db(request):
   p = argparse.ArgumentParser()
@@ -62,14 +106,12 @@ def new_games_to_db(request):
   ignore_errors = r.ignore_errors
   force = r.force
   dry_run = r.dry_run
-  if not dry_run:
-    # Use the application default credentials
-    cred = credentials.ApplicationDefault()
-    firebase_admin.initialize_app(cred, {
-      'projectId': 'pennantchase-256',
-    })
-    db = firestore.client()
-    mydb = db.collection(u'mydb')
+  cred = credentials.ApplicationDefault()
+  firebase_admin.initialize_app(cred, {
+    'projectId': 'pennantchase-256',
+  })
+  db = firestore.client()
+  mydb = db.collection(u'mydb')
 
   if not day:
     r = requests.get(f'https://www.pennantchase.com/baseballleague/scoreboard?lgid={LEAGUE_ID}')
@@ -82,26 +124,15 @@ def new_games_to_db(request):
       day = 0
       print(f'Starting from day {day}', file=sys.stdout)
 
-  if not year:
-    # TODO there is a race condition here depending on when we process
-    # the day with the last World Series game and when the World
-    # Series Champion gets updated.
-    r = requests.get(f'https://www.pennantchase.com/lgHistory.aspx?lgid={LEAGUE_ID}')
-    r.raise_for_status()
-    soup = bs4.BeautifulSoup(r.content, 'html.parser')
-    last_wsc = soup.find('p')
-    last_year_str, rest = last_wsc.text.split(' ', 1)
-    if not rest.startswith('World Series Champion'):
-      raise Exception(f"Couldn't determine year from {last_wsc.text}")
-    year = int(last_year_str) + 1
-    print(f'{year=}', file=sys.stdout)
-
   fully_processed_count = 0
   error_count = 0
   
   # for each day
   considered = 0
   while day >= 1 and considered < limit:
+    if not year:
+      year = get_year_from_db_maybe_update(db, day, dry_run)
+      print(f'year from db: {year=}')
     considered += 1
     print(f'considering {day=}', file=sys.stdout)
     day_url = f'https://www.pennantchase.com/baseballleague/scoreboard?lgid={LEAGUE_ID}&scoreday={day}'
@@ -156,7 +187,8 @@ def new_games_to_db(request):
           print('wrote', game_id)
         except exceptions.AlreadyExists as e:
           print(game_id, 'already exists')
-          # Check if document is in db. This is here in case game_id turns out not to be unique.
+          # Check if document is in db. This is here in case game_id
+          # turns out not to be unique or if there is a bug.
         db_dict = ref.get().to_dict()
         if document != db_dict:
           # TODO would be nice to do this stuff transactionally
