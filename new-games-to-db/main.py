@@ -3,25 +3,25 @@
 # TODO (for current season): Don't update if nothing changed.
 
 import argparse
-import bs4
-import firebase_admin
-import os
 import re
-import requests
 import sys
 import time
-
 from datetime import datetime, timedelta, timezone
-
-from firebase_admin import credentials, firestore
-from google.api_core import exceptions
 from pprint import pprint
 
+import bs4
+import firebase_admin
+import flask
+import requests
+from firebase_admin import credentials, firestore
+from google.api_core import exceptions
 
 LEAGUE_ID = '256'  # The Show
 BUCKET = 'pc256-box-scores'
 CONTENT_TYPE = 'text/html; charset=utf-8'
 PAST_STANDINGS_URL = f'https://www.pennantchase.com/lgPastStandings.aspx?lgId={LEAGUE_ID}'
+
+app = flask.Flask(__name__)
 
 @firestore.transactional
 def write_new_document(transaction, ref, data):
@@ -80,7 +80,8 @@ def get_year_from_db_maybe_update(db: firestore.Client, day: int, dry_run: bool)
   return pc_year
   
 
-def new_games_to_db(request):
+@app.route('/', methods=['POST'])
+def new_games_to_db():
   p = argparse.ArgumentParser()
   p.add_argument('-d', '--day', type=int, default=None, required=False)
   p.add_argument('-y', '--year', type=int, default=None, required=False)
@@ -222,4 +223,4 @@ def new_games_to_db(request):
 
 
 if __name__ == '__main__':
-    new_games_to_db(None)
+    new_games_to_db()
