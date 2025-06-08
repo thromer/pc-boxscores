@@ -22,7 +22,7 @@ cd "$(realpath "$(dirname "${BASH_SOURCE[0]}")")" &&
     docker push ${LOCATION}-docker.pkg.dev/${PROJECT}/artifacts/${SERVICE}:latest &&
     gcloud run deploy \
 	   --project=${PROJECT} \
-	   --image=${LOCATION}-docker.pkg.dev/${PROJECT}/artifacts/${SERVICE} \
+	   --image=${LOCATION}-docker.pkg.dev/${PROJECT}/artifacts/${SERVICE}:latest \
 	   --base-image=${LOCATION}-docker.pkg.dev/serverless-runtimes/google-22/runtimes/python312:public-image-current \
 	   --region=${LOCATION} \
            --no-allow-unauthenticated \
@@ -32,9 +32,8 @@ cd "$(realpath "$(dirname "${BASH_SOURCE[0]}")")" &&
 	   --cpu=0.2 \
 	   --memory=256Mi \
 	   --cpu-boost \
-	   --update-env-vars=PROJECT_NUMBER=$PROJECT_NUMBER \
 	   ${SERVICE} |& ts |& tee "${DEPLOY_LOG}" &&
     gcloud --project=${PROJECT} storage cp --gzip-local-all "${DEPLOY_LOG}" ${LOGS_BUCKET}/ &&
     ./ensure_trigger.sh &&
-    docker image ls -f 'reference=${LOCATION}-docker.pkg.dev/${PROJECT}/artifacts/${SERVICE}*' | 
+    docker image ls -f "reference=${LOCATION}-docker.pkg.dev/${PROJECT}/artifacts/${SERVICE}*" |
 	tail -n +2 | awk '$2 != "latest" {print $3}' | xargs -r docker image rm
