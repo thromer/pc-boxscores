@@ -1,0 +1,22 @@
+[
+  {
+    "action": {
+      "type": "DELETE"
+    },
+    "condition": {
+      "olderThan": "3600s",
+      "tagState": "ANY"
+    },
+    "name": "delete-old"
+  },
+  {
+    "action": {
+      "type": "KEEP"
+    },
+    "mostRecentVersions": {
+      "keepCount": 1
+    },
+    "name": "keep-latest"
+  }
+]
+

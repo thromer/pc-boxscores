@@ -1,0 +1,16 @@
+*.md
+*.pyc
+*~
+.dockerignore
+.gcloudignore
+.git
+.gitignore
+.mypy_cache
+TODO
+__pycache__
+analyze-stdin.py
+deploy.sh
+new-games-to-db
+old
+store-in-gcs
+venv
