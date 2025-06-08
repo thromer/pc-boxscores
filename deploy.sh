@@ -23,7 +23,7 @@ cd "$(realpath "$(dirname "${BASH_SOURCE[0]}")")" &&
     gcloud run deploy \
 	   --project=${PROJECT} \
 	   --image=${LOCATION}-docker.pkg.dev/${PROJECT}/artifacts/${SERVICE}:latest \
-	   --base-image=${LOCATION}-docker.pkg.dev/serverless-runtimes/google-22/runtimes/python312:public-image-current \
+	   --base-image=${LOCATION}-docker.pkg.dev/serverless-runtimes/google-22/runtimes/python312 \
 	   --region=${LOCATION} \
            --no-allow-unauthenticated \
 	   --concurrency=1 \
