@@ -19,7 +19,6 @@ import os  # TODO delete
 app = flask.Flask(__name__)
 
 def process_box_score(event: CloudEvent):
-    print(f"{os.getuid()=}")  # TODO delete
     storage_client = storage.Client()
     bucket_name = event.data['bucket']
     bucket = storage_client.get_bucket(bucket_name)
