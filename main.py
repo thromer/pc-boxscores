@@ -19,6 +19,7 @@ import os  # TODO delete
 app = flask.Flask(__name__)
 
 def process_box_score(event: CloudEvent):
+    print(f"{os.getuid()=}")  # TODO delete
     storage_client = storage.Client()
     bucket_name = event.data['bucket']
     bucket = storage_client.get_bucket(bucket_name)
@@ -26,7 +27,7 @@ def process_box_score(event: CloudEvent):
     blob = bucket.get_blob(blob_name)
     if blob is None:
         raise Exception(f"Object not found gs://{bucket_name}/{blob_name}")
-    print(f'bucket: {bucket} object: {blob}')
+    print(f'bucket: {bucket_name} object: {blob_name}')
     if blob_name.find('-replay') > 0:
         print('replay, skipping')
         return

@@ -14,7 +14,9 @@ RUN python -m pip install --no-cache-dir --prefix=python-packages -r requirement
 # Run
 FROM scratch
 COPY --from=builder /pip/python-packages /opt/python
-COPY . /workspace/
+COPY --chown=33:33 . /workspace/
+
+USER www-data
 
 ENV PYTHONPATH=/opt/python/lib/python3.12/site-packages
 ENV PATH=/opt/python/bin:$PATH
