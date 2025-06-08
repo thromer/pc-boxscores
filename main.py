@@ -6,37 +6,26 @@
 # TODO also report the day
 # TODO would be nice to move to a subdirectory
 
-import re
-import sys
+from typing import Any, cast
 
-from lib import analyze
-from lib import pcweb
-from google.cloud import exceptions, storage
+import flask
+from cloudevents.http import CloudEvent, from_http
+from google.cloud import storage
 
-def process_box_score(event, context):
-    """Background Cloud Function to be triggered by Cloud Storage.
+from lib import analyze, pcweb
 
-    Args:
-        event (dict):  The dictionary with data specific to this type of event.
-                       The `data` field contains a description of the event in
-                       the Cloud Storage `object` format described here:
-                       https://cloud.google.com/storage/docs/json_api/v1/objects#resource
-        context (google.cloud.functions.Context): Metadata of triggering event.
-    Returns:
-        None; the output is written to Stackdriver Logging
-    """
+app = flask.Flask(__name__)
 
-    # print('Event type: {}'.format(context.event_type))
-    # print('Bucket: {}'.format(event['bucket']))
-    # print('File: {}'.format(event['name']))
-    # print('Metageneration: {}'.format(event['metageneration']))
-    # print('Created: {}'.format(event['timeCreated']))
-    # print('Updated: {}'.format(event['updated']))
+def process_box_score(event: CloudEvent):
     storage_client = storage.Client()
-    bucket = storage_client.get_bucket(event['bucket'])
-    blob = bucket.get_blob(event['name'])
-    print('Event ID: %s bucket: %s object: %s' % (context.event_id, bucket, blob))
-    if event['name'].find('-replay') > 0:
+    bucket_name = event.data['bucket']
+    bucket = storage_client.get_bucket(bucket_name)
+    blob_name = event.data['name']
+    blob = bucket.get_blob(blob_name)
+    if blob is None:
+        raise Exception(f"Object not found gs://{bucket_name}/{blob_name}")
+    print(f'bucket: {bucket_name} object: {blob_name}')
+    if blob_name.find('-replay') > 0:
         print('replay, skipping')
         return
     data = blob.download_as_text()
@@ -45,5 +34,12 @@ def process_box_score(event, context):
         pc = pcweb.PcWeb('256')  # '1000' for testing
         # pc.send_to_thromer('stuff happened', '\n'.join(messages))
         for message in messages:
-            pc.league_chat('%s [Day %s]' % (message, blob.metadata['day']), trailing_whitespace=int(blob.metadata['year']) % 5)
+            metadata = cast(dict[str, Any], blob.metadata)
+            pc.league_chat('%s [Day %s]' % (message, metadata['day']), trailing_whitespace=int(metadata['year']) % 5)
     
+@app.route('/', methods=['POST'])
+def process_box_score_eventarc():
+    process_box_score(from_http(
+        flask.request.headers,  # type: ignore[reportArgumentType]
+        flask.request.get_data()))
+    return "process_box_score done\n"
