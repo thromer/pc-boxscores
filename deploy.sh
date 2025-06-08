@@ -14,7 +14,7 @@ REPO=artifacts
 TIMESTAMP="$(date -u +'%Y-%m-%dT%H:%M:%S.%NZ')"
 BUILD_LOG="/tmp/${PROJECT}-build-${TIMESTAMP}.log"
 DEPLOY_LOG="/tmp/${PROJECT}-deploy-${TIMESTAMP}.log"
-cd $(realpath "$(dirname "${BASH_SOURCE[0]}")") &&
+cd "$(realpath "$(dirname "${BASH_SOURCE[0]}")")" &&
     ensure_repo $PROJECT $LOCATION $REPO repository-cleanup-policy.json &&
     docker build -t ${LOCATION}-docker.pkg.dev/${PROJECT}/artifacts/${SERVICE}:latest . |& ts |& tee "${BUILD_LOG}" &&
     ensure_logs_bucket $PROJECT $LOGS_BUCKET &&
@@ -23,7 +23,7 @@ cd $(realpath "$(dirname "${BASH_SOURCE[0]}")") &&
     gcloud run deploy \
 	   --project=${PROJECT} \
 	   --image=${LOCATION}-docker.pkg.dev/${PROJECT}/artifacts/${SERVICE} \
-	   --base-image=${LOCATION}-docker.pkg.dev/serverless-runtimes/google-22/runtimes/python312 \
+	   --base-image=${LOCATION}-docker.pkg.dev/serverless-runtimes/google-22/runtimes/python312:public-image-current \
 	   --region=${LOCATION} \
            --no-allow-unauthenticated \
 	   --concurrency=1 \
@@ -38,6 +38,3 @@ cd $(realpath "$(dirname "${BASH_SOURCE[0]}")") &&
     ./ensure_trigger.sh &&
     docker image ls -f 'reference=${LOCATION}-docker.pkg.dev/${PROJECT}/artifacts/${SERVICE}*' | 
 	tail -n +2 | awk '$2 != "latest" {print $3}' | xargs -r docker image rm
-    
-
-    

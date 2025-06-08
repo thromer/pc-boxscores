@@ -6,13 +6,13 @@
 # TODO also report the day
 # TODO would be nice to move to a subdirectory
 
-import flask
 from typing import Any, cast
 
-from lib import analyze
-from lib import pcweb
+import flask
 from cloudevents.http import CloudEvent, from_http
 from google.cloud import storage
+
+from lib import analyze, pcweb
 
 app = flask.Flask(__name__)
 

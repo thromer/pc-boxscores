@@ -11,7 +11,7 @@ cmd = [
     '--threads=8', 
     '--timeout=0',
     # '--log-level=debug',
-    'main:app'
+    'main:app',
 ]
 print(f'running gunicorn args={cmd}', file=sys.stderr)
 os.execvp('gunicorn', cmd)
