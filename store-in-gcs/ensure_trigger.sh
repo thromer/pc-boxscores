@@ -10,7 +10,9 @@ LOCATION=us-west1
 SERVICE=store-in-gcs
 SA=eventarc-trigger@${PROJECT}.iam.gserviceaccount.com
 
-ensure_eventarc_trigger_account $PROJECT ${SERVICE} $SA &&
+# TODO refactor to remove reference to process-box-score
+
+ensure_eventarc_trigger_account $PROJECT ${SERVICE},process-box-score $SA &&
     (gcloud --project=${PROJECT} eventarc triggers describe --location=$LOCATION game-doc >& /dev/null ||
 	 gcloud --project=${PROJECT} eventarc triggers create \
 		--location=${LOCATION} \
