@@ -17,21 +17,15 @@
 # Just throw box scores into files (cloud?) for later processing
 # Someday make up a db (or nosql) schema and populate a cloud sql (?) instance and share it
 
-import argparse
-import base64
-import bs4
-import csv
-import functions_framework
-import json
 import os
-import pprint
 import re
-import requests
 import sys
-import time
 
-from google.events.cloud import firestore
+import flask
+import requests
+from cloudevents.http import from_http
 from google.cloud import exceptions, storage
+from google.events.cloud import firestore
 
 if ('GOOGLE_APPLICATION_CREDENTIALS' not in os.environ and
     'FUNCTION_TARGET' not in os.environ and
@@ -42,7 +36,8 @@ if ('GOOGLE_APPLICATION_CREDENTIALS' not in os.environ and
 BUCKET = 'pc256-box-scores'
 CONTENT_TYPE = 'text/html; charset=utf-8'
 
-@functions_framework.cloud_event
+app = flask.Flask(__name__)
+
 def pubsub_to_gcs(event):
   """ Triggered by a change to a Firestore document.
   """
@@ -108,3 +103,10 @@ def pubsub_to_gcs(event):
     print('uploaded %s' % replay_blob_name, file=sys.stdout)
   else:
     print('already uploaded %s' % replay_blob_name, file=sys.stdout)
+
+@app.route('/', methods=['POST'])
+def pubsub_to_gcs_eventarc():
+  pubsub_to_gcs(from_http(
+        flask.request.headers,  # type: ignore[reportArgumentType]
+        flask.request.get_data()))
+  return "pubsub_to_gcs done\n"

@@ -1,2 +1,6 @@
-gunicorn
+beautifulsoup4
+cloudevents
 flask
+google-cloud-storage
+google-events
+gunicorn
