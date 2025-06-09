@@ -7,7 +7,6 @@ import re
 import sys
 import time
 from datetime import datetime, timedelta, timezone
-from pprint import pprint
 
 import bs4
 import firebase_admin
