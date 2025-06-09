@@ -36,4 +36,7 @@ cd "$(realpath "$(dirname "${BASH_SOURCE[0]}")")" &&
     gcloud --project=${PROJECT} storage cp --gzip-local-all "${DEPLOY_LOG}" ${LOGS_BUCKET}/ &&
     docker image ls -f "reference=${LOCATION}-docker.pkg.dev/${PROJECT}/artifacts/${SERVICE}*" |
 	tail -n +2 | awk '$2 != "latest" {print $3}' | xargs -r docker image rm &&
-    gcloud artifacts docker images list --format='value(IMAGE,DIGEST)' ${LOCATION}-docker.pkg.dev/${PROJECT}/artifacts/${SERVICE} | sed -e 's#\t#@#' | xargs -n 1 -r gcloud -q artifacts docker images delete >& /dev/null
+    gcloud artifacts docker images list \
+	   --format='value(IMAGE,DIGEST)' ${LOCATION}-docker.pkg.dev/${PROJECT}/artifacts/${SERVICE} |
+	sed -e 's#\t#@#' | 
+	xargs -n 1 -r gcloud -q artifacts docker images delete >& /dev/null
