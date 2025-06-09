@@ -1,2 +1,7 @@
+beautifulsoup4
+cloudevents
+functions-framework
+google-cloud-storage
+google-events
 gunicorn
-flask
+requests
