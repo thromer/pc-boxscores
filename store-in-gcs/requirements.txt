@@ -4,3 +4,4 @@ flask
 google-cloud-storage
 google-events
 gunicorn
+requests
