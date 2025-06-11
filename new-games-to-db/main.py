@@ -109,7 +109,7 @@ def new_games_to_db(args=[]):
   firebase_admin.initialize_app(cred, {
     'projectId': 'pennantchase-256',
   })
-  db = firestore.client()
+  db = firestore.client(database_id='db-us-west1')
   mydb = db.collection(u'mydb')
 
   if not day:

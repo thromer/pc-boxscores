@@ -1,6 +1,6 @@
 beautifulsoup4
 cloudevents
-functions-framework
+flask
 google-cloud-storage
 google-events
 gunicorn
