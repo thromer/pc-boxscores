@@ -16,7 +16,7 @@ BUILD_LOG="/tmp/${PROJECT}-${SERVICE}-build-${TIMESTAMP}.log"
 DEPLOY_LOG="/tmp/${PROJECT}-${SERVICE}-deploy-${TIMESTAMP}.log"
 cd "$(realpath "$(dirname "${BASH_SOURCE[0]}")")" &&
     ensure_repo $PROJECT $LOCATION $REPO ../repository-cleanup-policy.json &&
-    docker build -t ${LOCATION}-docker.pkg.dev/${PROJECT}/artifacts/${SERVICE}:latest . |& ts |& tee "${BUILD_LOG}" &&
+    docker build --progress plain -t ${LOCATION}-docker.pkg.dev/${PROJECT}/artifacts/${SERVICE}:latest . |& ts |& tee "${BUILD_LOG}" &&
     ensure_logs_bucket $PROJECT $LOGS_BUCKET &&
     gcloud --project=${PROJECT} storage cp --gzip-local-all "${BUILD_LOG}" ${LOGS_BUCKET}/ &&
     ensure_docker_gcloud_auth $LOCATION
