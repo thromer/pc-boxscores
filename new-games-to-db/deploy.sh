@@ -19,6 +19,7 @@ cd "$(realpath "$(dirname "${BASH_SOURCE[0]}")")" &&
     docker build -t ${LOCATION}-docker.pkg.dev/${PROJECT}/artifacts/${SERVICE}:latest . |& ts |& tee "${BUILD_LOG}" &&
     ensure_logs_bucket $PROJECT $LOGS_BUCKET &&
     gcloud --project=${PROJECT} storage cp --gzip-local-all "${BUILD_LOG}" ${LOGS_BUCKET}/ &&
+    ensure_docker_gcloud_auth $LOCATION
     docker push ${LOCATION}-docker.pkg.dev/${PROJECT}/artifacts/${SERVICE}:latest &&
     gcloud run deploy \
 	   --project=${PROJECT} \
