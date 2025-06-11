@@ -2,7 +2,7 @@
 
 # We use the same image as the runtime base image so that Python
 # version and location matches.
-FROM us-west1-docker.pkg.dev/serverless-runtimes/google-22/runtimes/python312:public-image-current AS builder
+FROM us-west1-docker.pkg.dev/serverless-runtimes/google-22/runtimes/python312 AS builder
 
 WORKDIR /pip
 COPY requirements.txt .
