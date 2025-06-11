@@ -60,8 +60,9 @@ def create_document_fields(fields: Dict[str, Any]) -> Dict[str, Any]:
     return firestore_fields
 
 
-def create_cloudevent_json(project_id: str, database_id: str, collection_path: str, 
-                          document_id: str, document_fields: Dict[str, Any]) -> Dict[str, Any]:
+def create_cloudevent_json(
+        project_id: str, database_id: str, collection_path: str,
+        document_id: str, document_fields: Dict[str, Any], deleted: bool) -> Dict[str, Any]:
     """Create CloudEvent structure for Firestore written event"""
     event_id = generate_event_id()
     timestamp = get_timestamp()
@@ -76,19 +77,20 @@ def create_cloudevent_json(project_id: str, database_id: str, collection_path: s
         "subject": f"documents/{collection_path}/{document_id}",
         "time": timestamp,
         "data": {
-            "value": {
+            "old_value" if deleted else "value": {
                 "name": document_path,
                 "fields": create_document_fields(document_fields),
                 "createTime": timestamp,
                 "updateTime": timestamp
             },
-            "updateMask": {}
-        }
+            "updateMask": {},
+        },
     }
 
 
-def create_protobuf_placeholder(project_id: str, database_id: str, collection_path: str, 
-                               document_id: str, document_fields: Dict[str, Any]) -> str:
+def create_cloudevent_protobuf(
+        project_id: str, database_id: str, collection_path: str,
+        document_id: str, document_fields: Dict[str, Any], deleted: bool) -> str:
     """Create base64-encoded protobuf using google.events.cloud.firestore.DocumentEventData"""
     # Create timestamp
     now = datetime.now()
@@ -96,7 +98,7 @@ def create_protobuf_placeholder(project_id: str, database_id: str, collection_pa
     timestamp.FromDatetime(now)
     
     # Create document path
-    # document_path = f"projects/{project_id}/databases/{database_id}/documents/{collection_path}/{document_id}"
+    document_path = f"projects/{project_id}/databases/{database_id}/documents/{collection_path}/{document_id}"
     
     # Convert fields to Firestore Value objects
     firestore_values = {}
@@ -111,20 +113,25 @@ def create_protobuf_placeholder(project_id: str, database_id: str, collection_pa
             firestore_values[key] = {"boolean_value": value}
         else:
             raise Exception(f"Can't handle {key}={value}")
-    
-    event_data = DocumentEventData(value={
-        "name": f"{collection_path}/{document_id}",
+
+    val={
+        "name": document_path,  # f"{collection_path}/{document_id}",
         "fields": firestore_values
-    })
-    
+    }
+    if deleted:
+        event_data = DocumentEventData(old_value=val)
+    else:
+        event_data = DocumentEventData(value=val)
+
     # Serialize to protobuf bytes and encode as base64
-    protobuf_bytes = event_data.SerializeToString()
+    protobuf_bytes = DocumentEventData.serialize(event_data)
     return base64.b64encode(protobuf_bytes).decode('utf-8')
 
 
 def generate_curl_command(target_url: str, project_id: str, database_id: str, 
-                         collection_path: str, document_id: str, 
-                         document_fields: Dict[str, Any], use_protobuf: bool = False) -> str:
+                          collection_path: str, document_id: str, location: str,
+                          document_fields: Dict[str, Any],
+                          deleted: bool = False, use_protobuf: bool = False) -> str:
     """Generate curl command for Firestore written event"""
     
     event_id = generate_event_id()
@@ -139,7 +146,11 @@ def generate_curl_command(target_url: str, project_id: str, database_id: str,
         f'-H "Ce-Source: {source}"',
         f'-H "Ce-Id: {event_id}"',
         f'-H "Ce-Time: {timestamp}"',
-        f'-H "Ce-Subject: {subject}"'
+        f'-H "Ce-Subject: {subject}"',
+        f'-H "Ce-Project: {project_id}"',
+        f'-H "Ce-Database: {database_id}"',
+        f'-H "Ce-Document: {collection_path}/{document_id}"',
+        f'-H "Ce-Location: {location}"'
     ]
     
     if use_protobuf:
@@ -147,7 +158,7 @@ def generate_curl_command(target_url: str, project_id: str, database_id: str,
         headers.append('-H "Content-Type: application/protobuf"')
         headers.append('-H "Ce-Datacontenttype: application/protobuf"')
         
-        protobuf_data = create_protobuf_placeholder(project_id, database_id, collection_path, document_id, document_fields)
+        protobuf_data = create_cloudevent_protobuf(project_id, database_id, collection_path, document_id, document_fields, deleted)
         
         headers_str = ' \\\n  '.join(headers)
         curl_cmd = f"""curl -X POST '{target_url}' \\
@@ -158,7 +169,7 @@ def generate_curl_command(target_url: str, project_id: str, database_id: str,
         headers.append('-H "Content-Type: application/json"')
         headers.append('-H "Ce-Datacontenttype: application/json"')
         
-        event_data = create_cloudevent_json(project_id, database_id, collection_path, document_id, document_fields)
+        event_data = create_cloudevent_json(project_id, database_id, collection_path, document_id, document_fields, deleted)
         json_data = json.dumps(event_data, separators=(',', ':'))
         
         headers_str = ' \\\n  '.join(headers)
@@ -195,34 +206,6 @@ def parse_fields(fields_str: str) -> Dict[str, Any]:
 
 
 def main():
-    # event_data = DocumentEventData(
-    #     value={
-    #         "name": "mydoc",
-    #         "fields": {
-    #             "f1": {"string_value": "field1"},
-    #             "f2": {"integer_value": 37}
-    #         }
-    #     }
-    # )
-    # raise Exception(f"{event_data=}")
-    # document = Document(
-    #     name="mydoc",
-    #     fields={
-    #         "f1": Value(string_value="field1"),
-    #         "f2": Value(integer_value=37)
-    #     }
-    # )
-    # event_data = DocumentEventData(value=document)
-    # raise Exception(f"{event_data=}")
-    # doc = Document()
-    # doc.name = "mydoc"
-    # doc.fields["f1"].string_value = "field1"
-    # doc.fields["f2"].integer_value = 37
-
-    # # Wrap it in DocumentEventData
-    # event_data = DocumentEventData(value=doc)
-    # print(f"THROMER {event_data=}")
-    # raise Exception("byebye")
     parser = argparse.ArgumentParser(
         description="Generate curl commands for Eventarc Firestore written events",
         formatter_class=argparse.RawDescriptionHelpFormatter,
@@ -255,10 +238,12 @@ Examples:
     
     parser.add_argument("--url", default="http://localhost:8080", help="Target URL for the POST request")
     parser.add_argument("--project", default="pennantchase-256", help="GCP Project ID (default: demo-project)")
+    parser.add_argument("--location", default="us-west1", help="GCP location/region (default: us-central1)")
     parser.add_argument("--database", default="db-us-west1", help="Firestore database ID (default: (default))")
     parser.add_argument("--collection", default="mydb", help="Collection path (default: documents)")
     parser.add_argument("--document", default="doc123", help="Document ID (default: doc123)")
     parser.add_argument("--fields", default='{"year": 2054, "away_r": 3, "day": 182, "home": "256-3", "away": "256-15", "home_r": 4}', help="Document fields as JSON string or key=value pairs")
+    parser.add_argument("--deleted", action="store_true", help="Generate payload corresponding to a deleted document")
     parser.add_argument("--protobuf", action="store_true", help="Generate protobuf format instead of JSON")
     
     args = parser.parse_args()
@@ -274,6 +259,8 @@ Examples:
         collection_path=args.collection,
         document_id=args.document,
         document_fields=document_fields,
+        location=args.location,
+        deleted=args.deleted,
         use_protobuf=args.protobuf
     )
     
@@ -282,15 +269,3 @@ Examples:
 
 if __name__ == "__main__":
     main()
-
-# for example
-"""
-"chase_handle_event flask.request.headers=EnvironHeaders([('Host', 'unified-service-u7x6iclp7a-uw.a.run.app'), ('Content-Type', 'application/protobuf'), ('Authorization', 'Bearer ELIDED'), ('Content-Length', '546'), ('Accept', 'application/json'), ('From', 'noreply@google.com'), ('User-Agent', 'APIs-Google; (+https://developers.google.com/webmasters/APIs-Google.html)'), ('X-Cloud-Trace-Context', 'a9e38a2b7936e87ec6194e47c87d9d67/13923462220437292968'), ('X-Forwarded-Proto', 'https'), ('Traceparent', '00-a9e38a2b7936e87ec6194e47c87d9d67-c13a131eacbc87a8-00'), ('X-Forwarded-For', '66.249.84.161'), ('Forwarded', 'for="66.249.84.161";proto=https'), ('Accept-Encoding', 'gzip, deflate, br'), ('Ce-Specversion', '1.0'), ('Ce-Id', '8fc0fdf1-b1bd-4874-a938-3ae26935102b'), ('Ce-Time', '2025-06-09T23:03:23.018239Z'), ('Ce-Database', '(default)'), ('Ce-Source', '//firestore.googleapis.com/projects/ynab-sheets-001/databases/(default)'), ('Ce-Document', 'chase-data/amazon-orders/amazon-orders/111-2051511-4394609'), ('Ce-Dataschema', 'https://github.com/googleapis/google-cloudevents/blob/main/proto/google/events/cloud/firestore/v1/data.proto'), ('Ce-Project', 'ynab-sheets-001'), ('Ce-Type', 'google.cloud.firestore.document.v1.written'), ('Ce-Namespace', '(default)'), ('Ce-Location', 'us-west1'), ('Ce-Subject', 'documents/chase-data/amazon-orders/amazon-orders/111-2051511-4394609')]) flask.request.get_data()=b'\n\x9f\x04\nqprojects/ynab-sheets-001/databases/(default)/documents/chase-data/amazon-orders/amazon-orders/111-2051511-4394609\x12\x14\n\x08max_date\x12\x08R\x06\x08\x80\xf6\xf8\xc1\x06\x12\xec\x02\n\x07details\x12\xe0\x02J\xdd\x02\n\xda\x022\xd7\x02\n\xf5\x01\n\nitem_lines\x12\xe6\x01J\xe3\x01\n\xe0\x012\xdd\x01\n\x0b\n\x05count\x12\x02\x10\x01\n\x17\n\x10item_price_cents\x12\x03\x10\xe6\x07\n\xb4\x01\n\x0bdescription\x12\xa4\x01\x8a\x01\xa0\x01BOENZONE Nut & Bolt Thread Checker (Complete SAE/Inch and Metric Set) - 26 Male/Female Gauges 14 Inch 12 Quickly Checking Nuts Bolts or Verifying The Size Pitch\n]\n\x0btransaction\x12N2L\n%\n\x0bdescription\x12\x16\x8a\x01\x13Visa ending in 7262\n\x15\n\x04date\x12\r\x8a\x01\n2025-06-03\n\x0c\n\x05cents\x12\x03\x10\xa4\x08\x12\x0b\n\x03who\x12\x04\x8a\x01\x01s\x1a\x0b\x08\xbb\xd0\x9d\xc2\x06\x10\x98\x9c\xd9\x08"\x0b\x08\xbb\xd0\x9d\xc2\x06\x10\x98\x9c\xd9\x08'"
-timestamp: "2025-06-09T23:03:29.059372Z"
-"""
-
-"""
-"chase_handle_event event.get_attributes()=mappingproxy({'specversion': '1.0', 'id': 'c6d9e1b3-69d0-4306-812f-2cb5b0dab064', 'source': '//firestore.googleapis.com/projects/ynab-sheets-001/databases/(default)', 'type': 'google.cloud.firestore.document.v1.written', 'datacontenttype': 'application/protobuf', 'dataschema': 'https://github.com/googleapis/google-cloudevents/blob/main/proto/google/events/cloud/firestore/v1/data.proto', 'subject': 'documents/chase-data/amazon-orders/amazon-orders/111-2051511-4394609', 'time': '2025-06-09T23:03:22.918895Z', 'database': '(default)', 'document': 'chase-data/amazon-orders/amazon-orders/111-2051511-4394609', 'namespace': '(default)', 'project': 'ynab-sheets-001', 'location': 'us-west1'}) event.data=b'\x12\xa1\x04\nqprojects/ynab-sheets-001/databases/(default)/documents/chase-data/amazon-orders/amazon-orders/111-2051511-4394609\x12\x14\n\x08max_date\x12\x08R\x06\x08\x80\xf6\xf8\xc1\x06\x12\xec\x02\n\x07details\x12\xe0\x02J\xdd\x02\n\xda\x022\xd7\x02\n\xf5\x01\n\nitem_lines\x12\xe6\x01J\xe3\x01\n\xe0\x012\xdd\x01\n\x0b\n\x05count\x12\x02\x10\x01\n\x17\n\x10item_price_cents\x12\x03\x10\xe6\x07\n\xb4\x01\n\x0bdescription\x12\xa4\x01\x8a\x01\xa0\x01BOENZONE Nut & Bolt Thread Checker (Complete SAE/Inch and Metric Set) - 26 Male/Female Gauges 14 Inch 12 Quickly Checking Nuts Bolts or Verifying The Size Pitch\n]\n\x0btransaction\x12N2L\n\x0c\n\x05cents\x12\x03\x10\xa4\x08\n\x15\n\x04date\x12\r\x8a\x01\n2025-06-03\n%\n\x0bdescription\x12\x16\x8a\x01\x13Visa ending in 7262\x12\x0b\n\x03who\x12\x04\x8a\x01\x01s\x1a\x0c\x08\xc2\xdc\x8f\xc2\x06\x10\x98\xa5\xb7\xb6\x02"\x0c\x08\xc2\xdc\x8f\xc2\x06\x10\x98\xa5\xb7\xb6\x02' firestore_payload=old_value {"
-"""
-
-# firestore_payload.value.name='projects/ynab-sheets-001/databases/(default)/documents/chase-data/amazon-orders/amazon-orders/111-2051511-4394609'
