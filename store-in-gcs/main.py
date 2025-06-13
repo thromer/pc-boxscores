@@ -61,7 +61,7 @@ def pubsub_to_gcs(event):
   bucket = None
   try:
     bucket = storage_client.get_bucket(BUCKET)
-  except exceptions.NotFound as e:
+  except exceptions.NotFound:
     bucket = storage.Bucket(storage_client, name=BUCKET)
     bucket.storage_class = 'ARCHIVE'
     bucket.create(location='US-WEST1')
@@ -73,16 +73,20 @@ def pubsub_to_gcs(event):
   # Don't bother: to compress: see examples/training/dictionary
   # TODONE if generation == 0 thingie
   blob = bucket.blob(blob_name)
-  if not blob.exists():
-    blob.metadata = data_map
-    # grab box score (raw) and compress
-    box_score = gzip.compress(requests.get(box_score_url).content)
-    blob.content_encoding = 'gzip'
-    # write to cloud
-    blob.upload_from_string(box_score, content_type=CONTENT_TYPE, if_generation_match=0)
+
+  # Using request preconditions will result in duplicate downloads
+  # from pennantchase.com in the case where we get duplicate
+  # invocations from the Firestore trigger. I think it will be rare.
+
+  # grab box score (raw) and compress
+  box_score = gzip.compress(requests.get(box_score_url).content)
+  blob.metadata = data_map
+  blob.content_encoding = 'gzip'
+  try:
     # Unnecessary: when compressed: content_type = 'application/octet-stream'
+    blob.upload_from_string(box_score, content_type=CONTENT_TYPE, if_generation_match=0)
     print('uploaded %s' % blob_name, file=sys.stdout)
-  else:
+  except exceptions.PreconditionFailed:
     print('already uploaded %s' % blob_name, file=sys.stdout)
 
 

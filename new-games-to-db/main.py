@@ -16,7 +16,6 @@ from firebase_admin import credentials, firestore
 from google.api_core import exceptions
 
 LEAGUE_ID = '256'  # The Show
-BUCKET = 'pc256-box-scores'
 CONTENT_TYPE = 'text/html; charset=utf-8'
 PAST_STANDINGS_URL = f'https://www.pennantchase.com/lgPastStandings.aspx?lgId={LEAGUE_ID}'
 
