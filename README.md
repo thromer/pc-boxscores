@@ -21,8 +21,8 @@ The update process uses Google Cloud Functions, driven by triggers.
      holding metadata for recent games to a Firestore database, keyed
      by the pennantchase game id.
   2. store-in-gcs is triggered when game documents are added to
-     Firestore. It copies the box score and the replay data from
-     Pennant Chase to Google Cloud Storage.
+     Firestore. It copies the box score from Pennant Chase to Google
+     Cloud Storage.
   3. process-box-score is triggered when objects are added to Google
      Cloud Storage. It looks for interesting events like no-hitters,
      and posts a message to the league chat box for each game with

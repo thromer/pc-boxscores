@@ -84,21 +84,7 @@ def pubsub_to_gcs(event):
     print('uploaded %s' % blob_name, file=sys.stdout)
   else:
     print('already uploaded %s' % blob_name, file=sys.stdout)
-  replay_url = 'https://www.pennantchase.com/lgReplay.aspx?lgid=256&sid=%s&hid=%s&vid=%s' % (game_id, data_map['home'], data_map['away'])
-  replay_blob_name = game_id + '-replay'
-  # TODO consider moving these to a different bucket so we can segregate Pub/Sub object creation messages.
-  replay_blob = bucket.blob(replay_blob_name)
-  if not replay_blob.exists():
-    replay_blob.metadata = data_map
-    # grab replay data
-    replay = requests.get(replay_url).content
-    # write to cloud
-    replay_blob.upload_from_string(replay, content_type=CONTENT_TYPE, if_generation_match=0)
-    # when compressed:
-    # content_type = 'application/octet-stream'
-    print('uploaded %s' % replay_blob_name, file=sys.stdout)
-  else:
-    print('already uploaded %s' % replay_blob_name, file=sys.stdout)
+
 
 @app.route('/', methods=['POST'])
 def pubsub_to_gcs_eventarc():

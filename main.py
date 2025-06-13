@@ -25,6 +25,7 @@ def process_box_score(event: CloudEvent):
     if blob is None:
         raise Exception(f"Object not found gs://{bucket_name}/{blob_name}")
     print(f'bucket: {bucket_name} object: {blob_name}')
+    # TODO remove this after store-in-gcs has baked for a while
     if blob_name.find('-replay') > 0:
         print('replay, skipping')
         return
