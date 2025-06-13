@@ -17,6 +17,7 @@
 # Just throw box scores into files (cloud?) for later processing
 # Someday make up a db (or nosql) schema and populate a cloud sql (?) instance and share it
 
+import gzip
 import re
 import sys
 
@@ -67,19 +68,19 @@ def pubsub_to_gcs(event):
 
   box_score_url = 'https://www.pennantchase.com/lgBoxScoreReader.aspx?sid=%s&lgid=256' % game_id
   blob_name = game_id
-  # when compressed: append .zstd
-  # when compressed: upload zstd-dictionary-<id> if it is missing!
-  # to compress: see examples/training/dictionary
+  # Don't bother: when compressed: append .zstd
+  # Don't bother: when compressed: upload zstd-dictionary-<id> if it is missing!
+  # Don't bother: to compress: see examples/training/dictionary
   # TODONE if generation == 0 thingie
   blob = bucket.blob(blob_name)
   if not blob.exists():
     blob.metadata = data_map
-    # grab box score (raw)
-    box_score = requests.get(box_score_url).content
+    # grab box score (raw) and compress
+    box_score = gzip.compress(requests.get(box_score_url).content)
+    blob.content_encoding = 'gzip'
     # write to cloud
     blob.upload_from_string(box_score, content_type=CONTENT_TYPE, if_generation_match=0)
-    # when compressed:
-    # content_type = 'application/octet-stream'
+    # Unnecessary: when compressed: content_type = 'application/octet-stream'
     print('uploaded %s' % blob_name, file=sys.stdout)
   else:
     print('already uploaded %s' % blob_name, file=sys.stdout)
