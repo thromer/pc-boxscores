@@ -29,7 +29,7 @@ class PcWeb:
         self.league_name = SPECS[league_id]['league_name']
         self.recipient = SPECS[league_id]['recipient']
         storage_client = storage.Client()
-        login_bucket = storage_client.get_bucket(LOGIN_BUCKET)
+        login_bucket = storage.Bucket(storage_client, LOGIN_BUCKET)
         login_json = login_bucket.blob(LOGIN_OBJECT).download_as_text()
         login_map = json.loads(login_json)
         username = login_map['username']

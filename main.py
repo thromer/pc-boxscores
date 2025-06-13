@@ -10,7 +10,7 @@ from typing import Any, cast
 
 import flask
 from cloudevents.http import CloudEvent, from_http
-from google.cloud import storage
+from google.cloud import exceptions, storage
 
 from lib import analyze, pcweb
 
@@ -19,17 +19,20 @@ app = flask.Flask(__name__)
 def process_box_score(event: CloudEvent):
     storage_client = storage.Client()
     bucket_name = event.data['bucket']
-    bucket = storage_client.get_bucket(bucket_name)
+    bucket = storage.Bucket(storage_client, bucket_name)
     blob_name = event.data['name']
-    blob = bucket.get_blob(blob_name)
-    if blob is None:
-        raise Exception(f"Object not found gs://{bucket_name}/{blob_name}")
+    blob = bucket.blob(blob_name)
+
     print(f'bucket: {bucket_name} object: {blob_name}')
     # TODO remove this after store-in-gcs has baked for a while
     if blob_name.find('-replay') > 0:
         print('replay, skipping')
         return
-    data = blob.download_as_text()
+    try:
+        data = blob.download_as_text()
+    except exceptions.NotFound as e:
+        print(e)
+        raise Exception(f"Bucket or object not found gs://{bucket_name}/{blob_name}")
     messages = analyze.analyze(data)
     if messages:
         pc = pcweb.PcWeb('256')  # '1000' for testing

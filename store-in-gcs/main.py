@@ -52,19 +52,16 @@ def pubsub_to_gcs(event):
     data_map[k] = int(v.fields[k].integer_value)
   for k in ('away', 'home'):
     data_map[k] = v.fields[k].string_value
+  # TODO here and probably many other places, fail with 400 not 500 for this sort of bad input.
   game_id = re.match(r'.*/(.*)', event['document'])[1]
   print('data_map',data_map)
   print('game_id',game_id)
 
-  # Get a cloud storage bucket
+  # Get the cloud storage bucket.
+  # If the bucket doesn't exists, fail, it is expensive
+  # to repeatedly and redundantly call get_bucket.
   storage_client = storage.Client()
-  bucket = None
-  try:
-    bucket = storage_client.get_bucket(BUCKET)
-  except exceptions.NotFound:
-    bucket = storage.Bucket(storage_client, name=BUCKET)
-    bucket.storage_class = 'ARCHIVE'
-    bucket.create(location='US-WEST1')
+  bucket = storage.Bucket(storage_client, BUCKET)
 
   box_score_url = 'https://www.pennantchase.com/lgBoxScoreReader.aspx?sid=%s&lgid=256' % game_id
   blob_name = game_id
@@ -77,6 +74,15 @@ def pubsub_to_gcs(event):
   # Using request preconditions will result in duplicate downloads
   # from pennantchase.com in the case where we get duplicate
   # invocations from the Firestore trigger. I think it will be rare.
+  # If it isn't then we should figure out why -- I neither want
+  # to pay for successful blob.exists() calls, nor do I want to
+  # double my load on pennantchase.com. Unsuccessful blob.exists()
+  # calls are not billed, per https://cloud.google.com/storage/pricing:
+  #
+  # "Generally, you are not charged for operations that return 307,
+  # 4xx, or 5xx responses. The exception is 404 responses returned by
+  # buckets with Website Configuration enabled and the NotFoundPage
+  # property set to a public object in that bucket."
 
   # grab box score (raw) and compress
   box_score = gzip.compress(requests.get(box_score_url).content)
@@ -88,6 +94,8 @@ def pubsub_to_gcs(event):
     print('uploaded %s' % blob_name, file=sys.stdout)
   except exceptions.PreconditionFailed:
     print('already uploaded %s' % blob_name, file=sys.stdout)
+  except exceptions.NotFound:
+    raise Exception(f"Please create bucket gs://{BUCKET}")
 
 
 @app.route('/', methods=['POST'])
