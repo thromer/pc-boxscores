@@ -16,17 +16,18 @@ from lib import analyze, pcweb
 
 app = flask.Flask(__name__)
 
+
 def process_box_score(event: CloudEvent):
     storage_client = storage.Client()
-    bucket_name = event.data['bucket']
+    bucket_name = event.data["bucket"]
     bucket = storage.Bucket(storage_client, bucket_name)
-    blob_name = event.data['name']
+    blob_name = event.data["name"]
     blob = bucket.blob(blob_name)
 
-    print(f'bucket: {bucket_name} object: {blob_name}')
+    print(f"bucket: {bucket_name} object: {blob_name}")
     # TODO remove this after store-in-gcs has baked for a while
-    if blob_name.find('-replay') > 0:
-        print('replay, skipping')
+    if blob_name.find("-replay") > 0:
+        print("replay, skipping")
         return
     try:
         data = blob.download_as_text()
@@ -35,15 +36,25 @@ def process_box_score(event: CloudEvent):
         raise Exception(f"Bucket or object not found gs://{bucket_name}/{blob_name}")
     messages = analyze.analyze(data)
     if messages:
-        pc = pcweb.PcWeb('256')  # '1000' for testing
+        pc = pcweb.PcWeb("256")  # '1000' for testing
         # pc.send_to_thromer('stuff happened', '\n'.join(messages))
         for message in messages:
             metadata = cast(dict[str, Any], blob.metadata)
-            pc.league_chat('%s [Day %s]' % (message, metadata['day']), trailing_whitespace=int(metadata['year']) % 5)
-    
-@app.route('/', methods=['POST'])
+            if metadata:
+                pc.league_chat(
+                    "%s [Day %s]" % (message, metadata["day"]),
+                    trailing_whitespace=int(metadata["year"]) % 5,
+                )
+            else:
+                print(f'Sad, no metadata for gs://{bucket_name}/{blob_name}")')
+
+
+@app.route("/", methods=["POST"])
 def process_box_score_eventarc():
-    process_box_score(from_http(
-        flask.request.headers,  # type: ignore[reportArgumentType]
-        flask.request.get_data()))
+    process_box_score(
+        from_http(
+            flask.request.headers,  # type: ignore[reportArgumentType]
+            flask.request.get_data(),
+        )
+    )
     return "process_box_score done\n"
