@@ -13,3 +13,4 @@ deploy.sh
 dev-requirements.txt
 fake-event.py
 venv
+.venv

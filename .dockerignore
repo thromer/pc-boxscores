@@ -18,3 +18,4 @@ old
 repository-cleanup-policy.json
 store-in-gcs
 venv
+.venv
