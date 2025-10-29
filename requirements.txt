@@ -4,3 +4,4 @@ flask
 google-cloud-storage
 gunicorn
 requests
+zipp>=3.19.1 # not directly required, pinned by Snyk to avoid a vulnerability
