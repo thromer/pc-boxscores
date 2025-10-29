@@ -52,7 +52,7 @@ def analyze(data):
     soup = bs4.BeautifulSoup(data, "html.parser")
     html_tables = soup.find_all("table")
     raw_tables = []
-    for html_table in html_tables:
+    for html_table in html_tables[:3]:
         raw_table = []
         for row in html_table.find_all("tr"):
             raw_row = []
