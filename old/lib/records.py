@@ -610,7 +610,7 @@ def merge_season_thing(db):
                     if k in old_live_ranked
                     else {"rank": "N/A", "tie": "N/A", "value": "N/A"}
                 )
-                if (not k in old_live_ranked) or (v["rank"] < o["rank"]):
+                if (k not in old_live_ranked) or (v["rank"] < o["rank"]):
                     message = (
                         "%s: %s %s moved up from rank %s (tie %s) to rank %s (tie %s) val went from %s to %s"
                         % (
@@ -669,7 +669,7 @@ def merge_season_thing(db):
                     if k in old_live_ranked
                     else {"rank": "N/A", "tie": "N/A", "value": "N/A"}
                 )
-                if (not k in old_live_ranked) or (v["rank"] < o["rank"]):
+                if (k not in old_live_ranked) or (v["rank"] < o["rank"]):
                     message = (
                         "%s: %s %s moved up from rank %s (tie %s) to rank %s (tie %s) val went from %s to %s"
                         % (

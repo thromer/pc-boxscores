@@ -12,7 +12,6 @@ from datetime import datetime, timezone
 from typing import Dict, Any
 from google.events.cloud.firestore import DocumentEventData
 from google.protobuf.timestamp_pb2 import Timestamp
-from datetime import datetime
 
 
 def generate_event_id() -> str:
@@ -160,8 +159,8 @@ def generate_curl_command(
 
     # Common headers
     headers = [
-        f'-H "Ce-Specversion: 1.0"',
-        f'-H "Ce-Type: google.cloud.firestore.document.v1.written"',
+        '-H "Ce-Specversion: 1.0"',
+        '-H "Ce-Type: google.cloud.firestore.document.v1.written"',
         f'-H "Ce-Source: {source}"',
         f'-H "Ce-Id: {event_id}"',
         f'-H "Ce-Time: {timestamp}"',

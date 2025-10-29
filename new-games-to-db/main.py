@@ -233,7 +233,7 @@ def new_games_to_db(args=[]):
                     wrote = True
                     upload_count += 1
                     print("wrote", game_id)
-                except exceptions.AlreadyExists as e:
+                except exceptions.AlreadyExists:
                     print(game_id, "already exists")
                     # Check if document is in db. This is here in case game_id
                     # turns out not to be unique or if there is a bug.

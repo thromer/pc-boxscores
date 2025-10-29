@@ -1,7 +1,7 @@
 import json
 import requests
 
-from google.cloud import exceptions, storage
+from google.cloud import storage
 
 SPECS = {
     "256": {

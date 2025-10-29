@@ -1,9 +1,7 @@
 from collections import defaultdict
 
 import bs4
-import pprint
 import re
-import sys
 
 BATTER_KEYS = [
     "AB",
