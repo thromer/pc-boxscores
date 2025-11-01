@@ -34,10 +34,10 @@ def process_object(bucket_name: str, blob_name: str, post: bool):
     if "day" not in metadata or "year" not in metadata:
         msg = f"day and/or year missing from {blob_label}"
         raise RuntimeError(msg)
-    # TODO remove this after store-in-gcs has baked for a while
-    if blob_name.find("-replay") > 0:
-        print("replay, skipping")
-        return
+    # # TODO remove this after store-in-gcs has baked for a while
+    # if blob_name.find("-replay") > 0:
+    #     print("replay, skipping")
+    #     return
     try:
         data = blob.download_as_text()
     except exceptions.NotFound as e:
