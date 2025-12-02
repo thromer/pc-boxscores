@@ -27,10 +27,10 @@ cd "$(realpath "$(dirname "${BASH_SOURCE[0]}")")" &&
 	   --base-image=${LOCATION}-docker.pkg.dev/serverless-runtimes/google-22/runtimes/python312 \
 	   --region=${LOCATION} \
            --no-allow-unauthenticated \
-	   --concurrency=1 \
+	   --concurrency=20 \
 	   --max-instances=5 \
 	   --timeout=900 \
-	   --cpu=0.2 \
+	   --cpu=1 \
 	   --memory=256Mi \
 	   --cpu-boost \
 	   ${SERVICE} |& ts |& tee "${DEPLOY_LOG}" &&
