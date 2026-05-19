@@ -141,15 +141,19 @@ def new_games_to_db(args=[]):
             f"https://www.pennantchase.com/baseballleague/scoreboard?lgid={LEAGUE_ID}"
         )
         soup = bs4.BeautifulSoup(r.content, "html.parser")
-        select = soup.find_all(lambda tag: tag.has_attr("id") and tag["id"] == "wday")[
-            0
-        ]
-        day_elts = select.find_all(lambda tag: tag.has_attr("value"))
-        if day_elts:
-            day = max([int(e["value"]) for e in day_elts])
-        else:
+        select_elts = soup.find_all(
+            lambda tag: tag.has_attr("id") and tag["id"] == "wday"
+        )
+        if not select_elts:
             day = 0
-            print(f"Starting from day {day}", file=sys.stdout)
+        else:
+            select = select_elts[0]
+            day_elts = select.find_all(lambda tag: tag.has_attr("value"))
+            if day_elts:
+                day = max([int(e["value"]) for e in day_elts])
+            else:
+                day = 0
+                print(f"Starting from day {day}", file=sys.stdout)
 
     fully_processed_count = 0
     error_count = 0
