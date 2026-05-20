@@ -10,13 +10,15 @@ LOCATION=us-west1
 SERVICE=process-box-score
 LOGS_BUCKET=gs://${PROJECT}_build-logs
 REPO=artifacts
+PYVER=3.14
+BASE_IMAGE=${LOCATION}-docker.pkg.dev/serverless-runtimes/google-24/runtimes/python${PYVER/./}
 
 TIMESTAMP="$(date -u +'%Y-%m-%dT%H:%M:%S.%NZ')"
 BUILD_LOG="/tmp/${PROJECT}-${SERVICE}-build-${TIMESTAMP}.log"
 DEPLOY_LOG="/tmp/${PROJECT}-${SERVICE}-deploy-${TIMESTAMP}.log"
 cd "$(realpath "$(dirname "${BASH_SOURCE[0]}")")" &&
     ensure_repo $PROJECT $LOCATION $REPO repository-cleanup-policy.json &&
-    docker build -t ${LOCATION}-docker.pkg.dev/${PROJECT}/artifacts/${SERVICE}:latest . |& ts |& tee "${BUILD_LOG}" &&
+    docker build --progress plain --build-arg BASE_IMAGE=${BASE_IMAGE} --build-arg PYVER=${PYVER} -t ${LOCATION}-docker.pkg.dev/${PROJECT}/artifacts/${SERVICE}:latest . |& ts |& tee "${BUILD_LOG}" &&
     ensure_logs_bucket $PROJECT $LOGS_BUCKET &&
     gcloud --project=${PROJECT} storage cp --gzip-local-all "${BUILD_LOG}" ${LOGS_BUCKET}/ &&
     ensure_docker_gcloud_auth $LOCATION
@@ -24,7 +26,7 @@ cd "$(realpath "$(dirname "${BASH_SOURCE[0]}")")" &&
     gcloud run deploy \
 	   --project=${PROJECT} \
 	   --image=${LOCATION}-docker.pkg.dev/${PROJECT}/artifacts/${SERVICE}:latest \
-	   --base-image=${LOCATION}-docker.pkg.dev/serverless-runtimes/google-22/runtimes/python312 \
+	   --base-image=${BASE_IMAGE} \
 	   --region=${LOCATION} \
            --no-allow-unauthenticated \
 	   --concurrency=1 \
