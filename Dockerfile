@@ -6,9 +6,14 @@ ARG BASE_IMAGE=scratch
 FROM ${BASE_IMAGE} AS builder
 ARG PYVER
 
+COPY --from=ghcr.io/astral-sh/uv:0.11.15 /uv /usr/local/bin/uv
+
 WORKDIR /pip
-COPY requirements.txt .
-RUN python -m pip install --no-cache-dir --prefix=python-packages -r requirements.txt && \
+COPY pyproject.toml uv.lock .
+
+ENV UV_NO_MANAGED_PYTHON=1
+RUN uv --no-cache export --frozen --no-default-groups -o requirements.txt && \
+    uv pip install --no-cache-dir --prefix=python-packages --no-python-downloads --require-hashes -r requirements.txt && \
     PYTHONPATH=python-packages/lib/python${PYVER}/site-packages python -m pip freeze --no-cache-dir
 
 # Run
