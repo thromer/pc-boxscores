@@ -1,15 +1,15 @@
 #!/usr/bin/env python3
-"""
-Eventarc Firestore Curl Command Generator
+"""Eventarc Firestore Curl Command Generator
 Generates curl commands for google.cloud.firestore.document.v1.written events
 """
 
+import argparse
+import base64
 import json
 import uuid
-import base64
-import argparse
-from datetime import datetime, timezone
-from typing import Dict, Any
+from datetime import UTC, datetime
+from typing import Any
+
 from google.events.cloud.firestore import DocumentEventData
 from google.protobuf.timestamp_pb2 import Timestamp
 
@@ -21,10 +21,10 @@ def generate_event_id() -> str:
 
 def get_timestamp() -> str:
     """Get current timestamp in RFC3339 format"""
-    return datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
+    return datetime.now(UTC).isoformat().replace("+00:00", "Z")
 
 
-def create_document_fields(fields: Dict[str, Any]) -> Dict[str, Any]:
+def create_document_fields(fields: dict[str, Any]) -> dict[str, Any]:
     """Convert simple fields to Firestore document format"""
     firestore_fields = {}
 
@@ -66,9 +66,9 @@ def create_cloudevent_json(
     database_id: str,
     collection_path: str,
     document_id: str,
-    document_fields: Dict[str, Any],
+    document_fields: dict[str, Any],
     deleted: bool,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """Create CloudEvent structure for Firestore written event"""
     event_id = generate_event_id()
     timestamp = get_timestamp()
@@ -99,7 +99,7 @@ def create_cloudevent_protobuf(
     database_id: str,
     collection_path: str,
     document_id: str,
-    document_fields: Dict[str, Any],
+    document_fields: dict[str, Any],
     deleted: bool,
 ) -> str:
     """Create base64-encoded protobuf using google.events.cloud.firestore.DocumentEventData"""
@@ -146,12 +146,11 @@ def generate_curl_command(
     collection_path: str,
     document_id: str,
     location: str,
-    document_fields: Dict[str, Any],
+    document_fields: dict[str, Any],
     deleted: bool = False,
     use_protobuf: bool = False,
 ) -> str:
     """Generate curl command for Firestore written event"""
-
     event_id = generate_event_id()
     timestamp = get_timestamp()
     source = f"//firestore.googleapis.com/projects/{project_id}/databases/{database_id}"
@@ -212,7 +211,7 @@ def generate_curl_command(
     return curl_cmd
 
 
-def parse_fields(fields_str: str) -> Dict[str, Any]:
+def parse_fields(fields_str: str) -> dict[str, Any]:
     """Parse fields from command line argument"""
     if not fields_str:
         return {

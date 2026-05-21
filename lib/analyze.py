@@ -1,7 +1,8 @@
+import re
 from collections import defaultdict
 
 import bs4
-import re
+
 
 BATTER_KEYS = [
     "AB",
@@ -47,7 +48,7 @@ def process_raw_table(raw_table):
     return players
 
 
-def analyze(data):
+def analyze(data: str) -> list[str]:
     messages = []
     soup = bs4.BeautifulSoup(data, "html.parser")
     html_tables = soup.find_all("table")

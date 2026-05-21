@@ -6,7 +6,7 @@ import argparse
 import re
 import sys
 import time
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 import bs4
 import firebase_admin
@@ -14,6 +14,7 @@ import flask
 import requests
 from firebase_admin import credentials, firestore
 from google.api_core import exceptions
+
 
 LEAGUE_ID = "256"  # The Show
 CONTENT_TYPE = "text/html; charset=utf-8"
@@ -64,7 +65,7 @@ def get_year_from_db_maybe_update(db: firestore.Client, day: int, dry_run: bool)
         return current["year"]
 
     # Trust DB if day is early and timestamp in DB is recent.
-    now = datetime.now(tz=timezone.utc)
+    now = datetime.now(tz=UTC)
     if current and now - current["timestamp"] <= timedelta(days=7):
         return current["year"]
 
@@ -127,12 +128,7 @@ def new_games_to_db(args=[]):
     force = r.force
     dry_run = r.dry_run
     cred = credentials.ApplicationDefault()
-    firebase_admin.initialize_app(
-        cred,
-        {
-            "projectId": "pennantchase-256",
-        },
-    )
+    firebase_admin.initialize_app(cred, {"projectId": "pennantchase-256"})
     db = firestore.client()
     mydb = db.collection("mydb")
 

@@ -27,6 +27,7 @@ from cloudevents.http import from_http
 from google.cloud import exceptions, storage
 from google.events.cloud import firestore
 
+
 BUCKET = "pc256-box-scores"
 CONTENT_TYPE = "text/html; charset=utf-8"
 

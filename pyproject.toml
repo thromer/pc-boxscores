@@ -14,7 +14,11 @@ dependencies = [
 dev = [
     "basedpyright>=1.39.5",
     "ruff>=0.15.13",
+    "types-gunicorn>=26.0.0.20260518",
 ]
+
+# [project.scripts]
+# pc-boxscores = "hmmmain"
 
 [tool.pytest.ini_options]
 addopts = [
@@ -39,10 +43,7 @@ select = [
 
 ignore = [
   "COM812", # missing-trailing-comma -- let the formatter deal with it
-  "D100",   # undocumented-public-module
-  "D101",   # undocumented-public-class
-  "D103",   # undocumented-public-function
-  "D104",   # undocumented-public-package
+  "D10",    # undocumented-public-*
   "D203",   # incorrect-blank-line-before-class
   "D213",   # multi-line-summary-second-line
   "DTZ007", # Naive datetime constructed using `datetime.datetime.strptime()` without %z
