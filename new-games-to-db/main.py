@@ -332,11 +332,18 @@ def new_games_to_db(args: Iterable[str] = ()) -> flask.Response:  # noqa: C901,P
 
 @app.route("/", methods=["POST"])
 def new_games_to_db_service() -> flask.Response:
+    nominal_response: flask.Response
     try:
-        response = new_games_to_db()
+        nominal_response = new_games_to_db()
     except NewgamesError as e:
-        response = flask.Response(status=HTTPStatus.BAD_REQUEST, response=str(e))
-    return response
+        nominal_response = flask.Response(
+            status=HTTPStatus.BAD_REQUEST, response=str(e)
+        )
+    if 400 <= nominal_response.status_code < 500:  # noqa: PLR2004
+        return flask.Response(
+            status=HTTPStatus.OK, response=nominal_response.get_data()
+        )
+    return nominal_response
 
 
 if __name__ == "__main__":

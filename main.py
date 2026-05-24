@@ -34,7 +34,9 @@ def process_object(bucket_name: str, blob_name: str) -> list[pcweb.ChatEntry]:
     blob = bucket.get_blob(blob_name)
     if blob is None:
         msg = f"{blob_label} not found"
-        raise RuntimeError(msg)
+        # This can happen, for example when we upload a random object to the bucket
+        # while testing and then delete it.
+        raise analyze.BoxscoreError(msg)
     if blob.metadata is None:
         msg = f"metadata missing from {blob_label}"
         raise RuntimeError(msg)
@@ -83,12 +85,18 @@ def process_box_score_eventarc() -> flask.Response:
         headers=dict(flask.request.headers), body=flask.request.get_data()
     )
     event = from_http_event(message)
-    response: flask.Response
+    nominal_response: flask.Response
     try:
-        response = process_box_score(event)
+        nominal_response = process_box_score(event)
     except analyze.BoxscoreError as e:
-        response = flask.Response(status=HTTPStatus.BAD_REQUEST, response=str(e))
-    return response
+        nominal_response = flask.Response(
+            status=HTTPStatus.BAD_REQUEST, response=str(e)
+        )
+    if 400 <= nominal_response.status_code < 500:  # noqa: PLR2004
+        return flask.Response(
+            status=HTTPStatus.OK, response=nominal_response.get_data()
+        )
+    return nominal_response
 
 
 def main(argv: list[str]) -> None:
