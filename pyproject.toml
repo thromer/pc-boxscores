@@ -13,11 +13,13 @@ dependencies = [
 [dependency-groups]
 dev = [
     "basedpyright>=1.39.5",
+    "pytest>=9.0.3",
     "ruff>=0.15.13",
     "types-gunicorn>=26.0.0.20260518",
 ]
 
 [tool.pytest.ini_options]
+pythonpath = ["."]
 addopts = [
   "--import-mode=importlib",
   "--strict-markers",
