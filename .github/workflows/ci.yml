@@ -1,0 +1,31 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - working-directory: .
+            files: "*.py lib/*.py"
+          - working-directory: new-games-to-db
+            files: "*.py"
+          - working-directory: store-in-gcs
+            files: "*.py"
+    defaults:
+      run:
+        working-directory: ${{ matrix.working-directory }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+      - run: uv run ruff check -q --output-format=github ${{ matrix.files }}
+      - run: uv run ruff format --diff ${{ matrix.files }}
+      - run: uv run basedpyright ${{ matrix.files }}
