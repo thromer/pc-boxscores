@@ -1,6 +1,0 @@
-beautifulsoup4
-cloudevents<2.0.0
-flask
-google-cloud-storage
-gunicorn
-requests
