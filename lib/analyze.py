@@ -1,4 +1,3 @@
-import pprint
 import re
 from collections import defaultdict
 
@@ -48,14 +47,14 @@ def process_raw_table(raw_table: list[list[str]]) -> list[dict[str, str]]:
         player["Team"] = team
         raw_name = re.sub("^\xa0+[a-z]+-", "", row[0])
         if raw_name.find(NBSP) > 0:
-            player["Name"], player["Pos"] = raw_name.split(NBSP, 2)
+            player["Name"], player["Pos"] = raw_name.split(NBSP, 1)
         else:
             player["Name"] = raw_name
         players.append(player)
     return players
 
 
-def analyze(data: str) -> list[str]:  # noqa: C901,PLR0912,PLR0915
+def analyze(data: str) -> list[str]:  # noqa: C901, PLR0912
     messages: list[str] = []
     soup = bs4.BeautifulSoup(data, "html.parser")
     html_tables = soup.select("table")
@@ -86,8 +85,8 @@ def analyze(data: str) -> list[str]:  # noqa: C901,PLR0912,PLR0915
     )
     batters = process_raw_table(batting_raw_table)
     pitchers = process_raw_table(pitching_raw_table)
-    pprint.pprint(batters)
-    pprint.pprint(pitchers)
+    # pprint.pprint(batters)
+    # pprint.pprint(pitchers)
     for batter in batters:
         stats = {key: int(batter[key]) for key in BATTER_KEYS}
         for key in BATTER_KEYS:
@@ -120,7 +119,6 @@ def analyze(data: str) -> list[str]:  # noqa: C901,PLR0912,PLR0915
             msg = "Innings pitch didn't match regex"
             raise RuntimeError(msg)
         innings, thirds = m.groups()
-        stats: dict[str, int] = {}
         stats["OUT"] = int(innings) * 3 + int(thirds)
         # print(f"{innings=} {thirds=} {pitcher['OUT']=}")
         opponent = opponents[pitcher["Team"]]
