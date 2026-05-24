@@ -268,7 +268,7 @@ def new_games_to_db(args: Iterable[str] = ()) -> flask.Response:  # noqa: C901,P
                     game_id = m[1]
             if game_id is None:
                 msg = "game id not found"
-                raise NewgamesError(game_id)
+                raise NewgamesError(msg)
             document: GameDoc = {
                 "year": year,
                 "day": day,

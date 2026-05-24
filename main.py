@@ -63,7 +63,7 @@ def process_object(bucket_name: str, blob_name: str) -> list[pcweb.ChatEntry]:
 def process_box_score(event: BaseCloudEvent) -> flask.Response:
     data = event.get_data()
     if not isinstance(data, dict):
-        msg = "Cloud Storage message type is {type(data}, should be dict"
+        msg = f"Cloud Storage message type is {type(data)}, should be dict"
         return flask.Response(status=HTTPStatus.BAD_REQUEST, response=msg)
     data = cast(dict[str, str], data)
     bucket_name = data["bucket"]
