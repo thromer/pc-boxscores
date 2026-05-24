@@ -3,7 +3,7 @@
 import sys
 
 from lib import analyze
-from lib import pcweb
+
 
 # if (
 #     "GOOGLE_APPLICATION_CREDENTIALS" not in os.environ
@@ -16,13 +16,13 @@ from lib import pcweb
 
 def main():
     data = sys.stdin.read()
-    messages = analyze.analyze(data)
+    messages, _ = analyze.analyze(data)
     if messages:
         print(" ".join(messages))
-        pc = pcweb.PcWeb("1000")
+        # pc = pcweb.PcWeb("1000")
         # pc.send_to_thromer('subject!', '\n'.join(messages))
-    for message in messages:
-        pc.league_chat("%s [Day %s]" % (message, 29), trailing_whitespace=4)
+    # for message in messages:
+    #    pc.league_chat("%s [Day %s]" % (message, 29), trailing_whitespace=4)
 
 
 if __name__ == "__main__":

@@ -1,7 +1,10 @@
+import re
 from collections import defaultdict
+from dataclasses import dataclass
+from typing import Any
 
 import bs4
-import re
+
 
 BATTER_KEYS = [
     "AB",
@@ -45,6 +48,16 @@ def process_raw_table(raw_table):
             player[k] = v
         players.append(player)
     return players
+
+
+@dataclass
+class ProcessedData:
+    nicknames: list[Any]
+    opponents: dict[Any, Any]
+    team_batting_totals: defaultdict[Any, defaultdict[Any, int]]
+    team_pitching_totals: defaultdict[Any, defaultdict[Any, int]]
+    batters: list[Any]
+    pitchers: list[Any]
 
 
 def analyze(data):
@@ -139,4 +152,12 @@ def analyze(data):
             )
     # messages.append(pprint.pformat(team_batting_totals))
     # messages.append(pprint.pformat(team_pitching_totals))
-    return messages
+    # this is a super temporary hack
+    return messages, ProcessedData(
+        nicknames,
+        opponents,
+        team_batting_totals,
+        team_pitching_totals,
+        batters,
+        pitchers,
+    )

@@ -15,6 +15,7 @@ from google.cloud import exceptions, storage
 
 from lib import analyze, pcweb
 
+
 app = flask.Flask(__name__)
 
 
@@ -43,7 +44,7 @@ def process_object(bucket_name: str, blob_name: str, post: bool):
     except exceptions.NotFound as e:
         print(e)
         raise Exception(f"Bucket or object not found gs://{bucket_name}/{blob_name}")
-    messages = analyze.analyze(data)
+    messages, _ = analyze.analyze(data)
     if messages:
         pc = pcweb.PcWeb("256")  # '1000' for testing
         # pc.send_to_thromer('stuff happened', '\n'.join(messages))
