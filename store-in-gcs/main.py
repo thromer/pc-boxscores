@@ -129,4 +129,9 @@ def pubsub_to_gcs_eventarc() -> flask.Response:
         headers=dict(flask.request.headers), body=flask.request.get_data()
     )
     event = from_http_event(message)
-    return pubsub_to_gcs(event)
+    nominal_response = pubsub_to_gcs(event)
+    if 400 <= nominal_response.status_code < 500:  # noqa: PLR2004
+        return flask.Response(
+            status=HTTPStatus.OK, response=nominal_response.get_data()
+        )
+    return nominal_response
