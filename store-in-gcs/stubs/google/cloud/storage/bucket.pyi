@@ -1,0 +1,7 @@
+from typing import Self
+
+from google.cloud.storage import Blob, Client
+
+class Bucket:
+    def __init__(self, client: Client, name: str | None = None) -> Self: ...
+    def blob(self, blob_name: str) -> Blob: ...
