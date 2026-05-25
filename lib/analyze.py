@@ -1,28 +1,51 @@
 import re
-from collections import defaultdict
+from dataclasses import dataclass, fields, replace
 
 import bs4
 
 
-BATTER_KEYS = [
-    "AB",
-    "R",
-    "H",
-    "RBI",
-    "2B",
-    "3B",
-    "HR",
-    "BB",
-    "K",
-    "SH",
-    "SB",
-    "CS",
-    "E",
-    "D",
-]
-PITCHER_KEYS = ["OUT", "H", "HR", "R", "ER", "BB", "K", "WP", "HB", "PC"]
-
 NBSP = "\xa0"
+
+
+@dataclass
+class PlayerRecord:
+    Name: str
+    Team: str
+    Opponent: str
+
+
+@dataclass
+class BatterRecord(PlayerRecord):
+    Pos: str
+    AB: int
+    R: int
+    H: int
+    RBI: int
+    Single: int
+    Double: int
+    Triple: int
+    HR: int
+    BB: int
+    K: int
+    SH: int
+    SB: int
+    CS: int
+    E: int
+    D: int
+
+
+@dataclass
+class PitcherRecord(PlayerRecord):
+    OUT: int
+    H: int
+    HR: int
+    R: int
+    ER: int
+    BB: int
+    K: int
+    WP: int
+    HB: int
+    PC: int
 
 
 class BoxscoreError(Exception):
@@ -54,8 +77,94 @@ def process_raw_table(raw_table: list[list[str]]) -> list[dict[str, str]]:
     return players
 
 
-def analyze(data: str) -> list[str]:  # noqa: C901, PLR0912
-    messages: list[str] = []
+def make_batter(raw_batter: dict[str, str], opponents: dict[str, str]) -> BatterRecord:
+    team = raw_batter["Team"]
+    return BatterRecord(
+        Name=raw_batter["Name"],
+        Pos=raw_batter["Pos"],
+        Team=team,
+        Opponent=opponents[team],
+        H=(h := int(raw_batter["H"])),
+        Double=(double := int(raw_batter["2B"])),
+        Triple=(triple := int(raw_batter["3B"])),
+        HR=(hr := int(raw_batter["HR"])),
+        Single=h - double - triple - hr,
+        AB=int(raw_batter["AB"]),
+        R=int(raw_batter["R"]),
+        RBI=int(raw_batter["RBI"]),
+        BB=int(raw_batter["BB"]),
+        K=int(raw_batter["K"]),
+        SH=int(raw_batter["SH"]),
+        SB=int(raw_batter["SB"]),
+        CS=int(raw_batter["CS"]),
+        E=int(raw_batter["E"]),
+        D=int(raw_batter["D"]),
+    )
+
+
+def make_pitcher(
+    raw_pitcher: dict[str, str], opponents: dict[str, str]
+) -> PitcherRecord:
+    team = raw_pitcher["Team"]
+    raw_ip = raw_pitcher["IP"]
+    m = re.match(r"^(\d*)\.([0-9])(?:\.|$)", raw_ip)
+    if not m:
+        msg = "Innings pitched didn't match regex"
+        raise BoxscoreError(msg)
+    innings, thirds = m.groups()
+    out = int(innings) * 3 + int(thirds)
+    return PitcherRecord(
+        Name=raw_pitcher["Name"],
+        Team=team,
+        Opponent=opponents[team],
+        OUT=out,
+        H=int(raw_pitcher["H"]),
+        HR=int(raw_pitcher["HR"]),
+        R=int(raw_pitcher["R"]),
+        ER=int(raw_pitcher["ER"]),
+        BB=int(raw_pitcher["BB"]),
+        K=int(raw_pitcher["K"]),
+        WP=int(raw_pitcher["WP"]),
+        HB=int(raw_pitcher["HB"]),
+        PC=int(raw_pitcher["PC"]),
+    )
+
+
+def get_team_batting_totals(batters: list[BatterRecord]) -> BatterRecord:
+    int_names = [f.name for f in fields(BatterRecord) if f.type is int]
+    return replace(
+        batters[0],
+        **{name: sum(getattr(b, name) for b in batters) for name in int_names},
+        Name="",
+        Pos="",
+        Team="",
+        Opponent="",
+    )
+
+
+def get_team_pitching_totals(pitchers: list[PitcherRecord]) -> PitcherRecord:
+    int_names = [f.name for f in fields(PitcherRecord) if f.type is int]
+    return replace(
+        pitchers[0],
+        **{name: sum(getattr(b, name) for b in pitchers) for name in int_names},
+        Name="",
+        Team="",
+        Opponent="",
+    )
+
+
+@dataclass
+class ProcessedData:
+    nicknames: list[str]
+    opponents: dict[str, str]
+    lob: list[int]
+    batters: list[BatterRecord]
+    team_batting_totals: dict[str, BatterRecord]
+    pitchers: list[PitcherRecord]
+    team_pitching_totals: dict[str, PitcherRecord]
+
+
+def process_data(data: str) -> ProcessedData:
     soup = bs4.BeautifulSoup(data, "html.parser")
     html_tables = soup.select("table")
     raw_tables = [
@@ -77,73 +186,78 @@ def analyze(data: str) -> list[str]:  # noqa: C901, PLR0912
     nicknames = [row[0] for row in box_score_raw_table[1:3]]
     opponents = {nicknames[i]: nicknames[1 - i] for i in range(2)}
     lob = [int(row[lob_index]) for row in box_score_raw_table[1:3]]
-    team_batting_totals = defaultdict[str, defaultdict[str, int]](
-        lambda: defaultdict[str, int](int)
+    raw_batters = process_raw_table(batting_raw_table)
+    raw_pitchers = process_raw_table(pitching_raw_table)
+    batters = [make_batter(b, opponents) for b in raw_batters]
+    team_batting_totals = {
+        team: get_team_batting_totals([b for b in batters if b.Team == team])
+        for team in nicknames
+    }
+    pitchers = [make_pitcher(b, opponents) for b in raw_pitchers]
+    team_pitching_totals = {
+        team: get_team_pitching_totals([p for p in pitchers if p.Team == team])
+        for team in nicknames
+    }
+    return ProcessedData(
+        nicknames,
+        opponents,
+        lob,
+        batters,
+        team_batting_totals,
+        pitchers,
+        team_pitching_totals,
     )
-    team_pitching_totals = defaultdict[str, defaultdict[str, int]](
-        lambda: defaultdict[str, int](int)
-    )
-    batters = process_raw_table(batting_raw_table)
-    pitchers = process_raw_table(pitching_raw_table)
-    # pprint.pprint(batters)
-    # pprint.pprint(pitchers)
-    for batter in batters:
-        stats = {key: int(batter[key]) for key in BATTER_KEYS}
-        for key in BATTER_KEYS:
-            team_batting_totals[batter["Team"]][key] += stats[key]
-        stats["1B"] = stats["H"] - stats["2B"] - stats["3B"] - stats["HR"]
-        opponent = opponents[batter["Team"]]
-        if stats["1B"] > 0 and stats["2B"] > 0 and stats["3B"] > 0 and stats["HR"] > 0:
+
+
+def analyze(data: str) -> list[str]:
+    processed_data = process_data(data)
+    messages: list[str] = []
+    for batter in processed_data.batters:
+        opponent = batter.Opponent
+        if (
+            batter.Single > 0
+            and batter.Double > 0
+            and batter.Triple > 0
+            and batter.HR > 0
+        ):
             messages.append(
                 (  # noqa: UP034
-                    f"{batter['Team']}: {batter['Name']} "
+                    f"{batter.Team}: {batter.Name} "
                     f"hit for the cycle against the {opponent}!"
                 )
             )
-        if stats["HR"] >= 4:  # noqa: PLR2004
+        if batter.HR >= 4:  # noqa: PLR2004
             messages.append(
                 (  # noqa: UP034
-                    f"{batter['Team']}: {batter['Name']} "
-                    f"hit {stats['HR']} home runs against the {opponent}!"
+                    f"{batter.Team}: {batter.Name} "
+                    f"hit {batter.HR} home runs against the {opponent}!"
                 )
             )
 
-    for pitcher in pitchers:
-        stats = {key: int(pitcher[key]) for key in PITCHER_KEYS}
-        for key in PITCHER_KEYS:
-            team_pitching_totals[pitcher["Team"]][key] += stats[key]
-        # messages.append('P %s %s' % (pitcher['Team'], pitcher['Name']))
-        raw_ip = pitcher["IP"]
-        m = re.match(r"^(\d*)\.([0-9])(?:\.|$)", raw_ip)
-        if not m:
-            msg = "Innings pitch didn't match regex"
-            raise RuntimeError(msg)
-        innings, thirds = m.groups()
-        stats["OUT"] = int(innings) * 3 + int(thirds)
-        # print(f"{innings=} {thirds=} {pitcher['OUT']=}")
-        opponent = opponents[pitcher["Team"]]
-        if stats["K"] >= 18:  # noqa: PLR2004
+    for pitcher in processed_data.pitchers:
+        opponent = pitcher.Opponent
+        if pitcher.K >= 18:  # noqa: PLR2004
             messages.append(
                 (  # noqa: UP034
-                    f"{pitcher['Team']}: {pitcher['Name']}"
-                    f"struck out {stats['K']} batters against the {opponent}"
+                    f"{pitcher.Team}: {pitcher.Name} "
+                    f"struck out {pitcher.K} batters against the {opponent}"
                 )
             )
     for index in range(2):
         pitching_index = index
         batting_index = 1 - index
-        pitching_team = nicknames[pitching_index]
-        batting_team = nicknames[batting_index]
-        hit_count = team_batting_totals[batting_team]["H"]
+        pitching_team = processed_data.nicknames[pitching_index]
+        batting_team = processed_data.nicknames[batting_index]
+        hit_count = processed_data.team_batting_totals[batting_team].H
         if hit_count <= 0:
             pitchers_str = " and ".join(
-                [p["Name"] for p in pitchers if p["Team"] == pitching_team]
+                [p.Name for p in processed_data.pitchers if p.Team == pitching_team]
             )
             if (
-                team_batting_totals[pitching_team]["E"] == 0
-                and lob[batting_index] == 0
-                and team_pitching_totals[pitching_team]["BB"] == 0
-                and team_pitching_totals[pitching_team]["HB"] == 0
+                processed_data.team_batting_totals[pitching_team].E == 0
+                and processed_data.lob[batting_index] == 0
+                and processed_data.team_pitching_totals[pitching_team].BB == 0
+                and processed_data.team_pitching_totals[pitching_team].HB == 0
             ):
                 game = "perfect game"
             else:
