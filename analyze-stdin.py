@@ -2,7 +2,7 @@
 
 import sys
 
-from lib import analyze, pcweb
+from lib import analyze
 
 
 # if (
@@ -19,12 +19,12 @@ def main() -> None:
     messages = analyze.analyze(data)
     if messages:
         print(" ".join(messages))
-        pc = pcweb.PcWeb("1000")
-        # pc.send_to_thromer('subject!', '\n'.join(messages))
-        for message in messages:
-            pc.league_chat(
-                pcweb.ChatEntry(f"{message} [Day 29]", trailing_whitespace=4)
-            )
+        # pc = pcweb.PcWeb("1000")
+        # # pc.send_to_thromer('subject!', '\n'.join(messages))
+        # for message in messages:
+        #     pc.league_chat(
+        #         pcweb.ChatEntry(f"{message} [Day 29]", trailing_whitespace=4)
+        #     )
 
 
 if __name__ == "__main__":

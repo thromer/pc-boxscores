@@ -18,11 +18,11 @@ jobs:
       matrix:
         include:
           - working-directory: .
-            files: "*.py lib/*.py"
+            files: "*.py lib/*.py tests/*.py"
           - working-directory: new-games-to-db
-            files: "*.py"
+            files: "*.py tests/*.py"
           - working-directory: store-in-gcs
-            files: "*.py"
+            files: "*.py tests/*.py"
     defaults:
       run:
         working-directory: ${{ matrix.working-directory }}
@@ -32,6 +32,7 @@ jobs:
       - run: uv run ruff check -q --output-format=github ${{ matrix.files }}
       - run: uv run ruff format --diff ${{ matrix.files }}
       - run: uv run basedpyright ${{ matrix.files }}
+      - run: uv run pytest tests/
   check:
     name: CI passed
     if: always()

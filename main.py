@@ -53,12 +53,13 @@ def process_object(bucket_name: str, blob_name: str) -> list[pcweb.ChatEntry]:
         print(e)
         msg = f"Bucket or object not found gs://{bucket_name}/{blob_name}"
         raise RuntimeError(msg) from None
+    messages = analyze.analyze(data)
     return [
         pcweb.ChatEntry(
             message=f"{message} [Day {blob.metadata['day']}]",
             trailing_whitespace=int(blob.metadata["year"]) % 5,
         )
-        for message in analyze.analyze(data)
+        for message in messages
     ]
 
 
