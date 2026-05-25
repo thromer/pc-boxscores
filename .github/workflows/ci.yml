@@ -8,7 +8,7 @@ on:
   workflow_dispatch:
 
 jobs:
-  lint:
+  ci:
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -29,3 +29,15 @@ jobs:
       - run: uv run ruff check -q --output-format=github ${{ matrix.files }}
       - run: uv run ruff format --diff ${{ matrix.files }}
       - run: uv run basedpyright ${{ matrix.files }}
+  check:
+    name: CI passed
+    if: always()
+    permissions: {}
+    needs:
+      - ci
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check that all matrix elements in all jobs passed
+        uses: re-actors/alls-green@05ac9388f0aebcb5727afa17fcccfecd6f8ec5fe  # v1.2.2
+        with:
+          jobs: ${{ toJSON(needs) }}
